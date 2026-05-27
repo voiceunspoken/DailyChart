@@ -83,13 +83,13 @@ function autoSuggestRatings(entry) {
   if (e.avyaktMurli.rating === 0) {
     let r = 0;
     if (e.avyaktMurli.attended) r += 3;
-    if (e.avyaktMurli.pointTaken.trim()) r += 2;
+    if ((e.avyaktMurli.pointTaken || '').trim()) r += 2;
     e.avyaktMurli.rating = Math.min(5, r);
   }
   if (e.sakarMurli.rating === 0) {
     let r = 0;
     if (e.sakarMurli.session !== 'Not attended') r += 3;
-    if (e.sakarMurli.stithi.trim()) r += 2;
+    if ((e.sakarMurli.stithi || '').trim()) r += 2;
     e.sakarMurli.rating = Math.min(5, r);
   }
   if (e.karmYogi.rating === 0) {
@@ -105,13 +105,13 @@ function autoSuggestRatings(entry) {
   }
   if (e.swarajya.rating === 0) {
     const avg = (e.swarajya.mansa + e.swarajya.vacha + e.swarajya.karmana) / 3;
-    e.swarajya.rating = Math.round(avg * 10) / 10;
+    e.swarajya.rating = Math.min(5, Math.round(avg));
   }
   if (e.sewa.rating === 0) {
     let r = 0;
-    if (e.sewa.mansa.trim()) r += 2;
-    if (e.sewa.vacha.trim()) r += 2;
-    if (e.sewa.karmana.trim()) r += 1;
+    if ((e.sewa.mansa || '').trim()) r += 2;
+    if ((e.sewa.vacha || '').trim()) r += 2;
+    if ((e.sewa.karmana || '').trim()) r += 1;
     e.sewa.rating = Math.min(5, r);
   }
   return e;
@@ -147,13 +147,14 @@ function computeInsights(entries) {
   const weekdayAvg = wkdN ? wkdSum / wkdN : 0;
   const weekendAvg = wknN ? wknSum / wknN : 0;
 
-  const sortedDates = [...entries].sort((a, b) => b.date.localeCompare(a.date));
+  const entryDates = new Set(entries.map(e => e.date));
   let streak = 0;
   const today = new Date();
-  for (let i = 0; i < 365; i++) {
+  const startOffset = entryDates.has(todayKey(today)) ? 0 : 1;
+  for (let i = startOffset; i < 365; i++) {
     const d = new Date(today); d.setDate(d.getDate() - i);
     const k = todayKey(d);
-    if (sortedDates.find(e => e.date === k)) streak++; else break;
+    if (entryDates.has(k)) streak++; else break;
   }
 
   const bTitle = SECTION_META[best.key].title;
@@ -794,7 +795,7 @@ function HistoryPage({ entries, setEntries }) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = `daily-chart-export-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click(); URL.revokeObjectURL(url);
+    a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   return (
